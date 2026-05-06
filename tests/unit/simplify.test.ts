@@ -6,4 +6,9 @@ describe('simplifyDebts', () => {
     const result = simplifyDebts({ a: 10, b: -10 });
     expect(result).toEqual([{ from: 'b', to: 'a', amount: 10 }]);
   });
+
+  it('tous les soldes sont à 0 → aucun règlement', () => {
+    const result = simplifyDebts({ a: 0, b: 0, c: 0 });
+    expect(result).toEqual([]);
+  });
 });
