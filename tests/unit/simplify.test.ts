@@ -11,4 +11,9 @@ describe('simplifyDebts', () => {
     const result = simplifyDebts({ a: 0, b: 0, c: 0 });
     expect(result).toEqual([]);
   });
+
+  it('3 personnes en triangle : 1 seul settlement, pas de détour par b', () => {
+    const result = simplifyDebts({ a: 10, b: 0, c: -10 });
+    expect(result).toEqual([{ from: 'c', to: 'a', amount: 10 }]);
+  });
 });
