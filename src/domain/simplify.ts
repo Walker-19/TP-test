@@ -10,19 +10,25 @@
 import type { Balances, Settlement } from './types';
 
 export function simplifyDebts(balances: Balances): Settlement[] {
-  const creditors = Object.entries(balances).filter(([, b]) => b > 0);
-  const debtors = Object.entries(balances).filter(([, b]) => b < 0);
+  // Soldes mutables pour pouvoir les réduire au fil des règlements
+  const credits = new Map<string, number>(
+    Object.entries(balances).filter(([, b]) => b > 0),
+  );
+  const debts = new Map<string, number>(
+    Object.entries(balances).filter(([, b]) => b < 0).map(([id, b]) => [id, -b]),
+  );
 
   const settlements: Settlement[] = [];
 
-  for (const [debtorId, debtorBalance] of debtors) {
-    let remaining = -debtorBalance;
-    for (const [creditorId, creditorBalance] of creditors) {
-      const pay = Math.min(remaining, creditorBalance);
-      if (pay > 0) {
-        settlements.push({ from: debtorId, to: creditorId, amount: pay });
-        remaining -= pay;
-      }
+  for (const [debtorId, debtAmount] of debts) {
+    let remaining = debtAmount;
+    for (const [creditorId, creditAmount] of credits) {
+      if (remaining <= 0) break;
+      const pay = Math.min(remaining, creditAmount);
+      if (pay <= 0) continue;
+      settlements.push({ from: debtorId, to: creditorId, amount: pay });
+      remaining -= pay;
+      credits.set(creditorId, creditAmount - pay);
     }
   }
 
