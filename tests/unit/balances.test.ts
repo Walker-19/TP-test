@@ -200,4 +200,45 @@ describe('computeBalances', () => {
     expect(result.alice).toBeCloseTo(0);
     expect(result.bob).toBeCloseTo(0);
   });
+
+  // Mutant killer 1 : groupe vide AVEC des dépenses → résultat vide
+  // (tue le mutant qui supprime le guard `members.length === 0`)
+  it('groupe vide avec une dépense → retourne {}', () => {
+    const group = makeGroup([]);
+    const expense = makeExpense({
+      amount: 30,
+      paidBy: 'alice',
+      split: { mode: 'equal', beneficiaries: ['alice'] },
+    });
+
+    const result = computeBalances(group, [expense]);
+
+    // Le guard doit bloquer l'exécution et retourner {}
+    expect(result).toEqual({});
+  });
+
+  // Mutant killer 2 : une dépense weighted suivie d'une dépense percentage
+  // (tue le mutant qui change `else if (mode === 'percentage')` en `else`)
+  it('dépense weighted puis percentage traitées indépendamment', () => {
+    const group = makeGroup(['alice', 'bob']);
+    const expenseW = makeExpense({
+      id: 'exp-w',
+      amount: 100,
+      paidBy: 'alice',
+      split: { mode: 'weighted', weights: { alice: 1, bob: 1 } },
+    });
+    const expenseP = makeExpense({
+      id: 'exp-p',
+      amount: 200,
+      paidBy: 'bob',
+      split: { mode: 'percentage', percentages: { alice: 25, bob: 75 } },
+    });
+
+    const result = computeBalances(group, [expenseW, expenseP]);
+
+    // alice: +100 -50 (weighted) -50 (25% de 200) = 0
+    expect(result.alice).toBeCloseTo(0);
+    // bob: -50 (weighted) +200 -150 (75% de 200) = 0
+    expect(result.bob).toBeCloseTo(0);
+  });
 });

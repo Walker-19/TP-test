@@ -33,4 +33,31 @@ describe('simplifyDebts', () => {
     expect(result).toContainEqual({ from: 'c', to: 'a', amount: 10 });
     expect(result).toContainEqual({ from: 'd', to: 'b', amount: 20 });
   });
+
+  // Mutant killer : b > 0 ne doit pas inclure les membres à solde 0 comme créditeurs
+  // (tue le mutant b > 0 → b >= 0)
+  it('un membre à solde 0 n\'est pas impliqué dans les settlements', () => {
+    const result = simplifyDebts({ a: 10, b: 0, c: -10 });
+    const involvedIds = result.flatMap((s) => [s.from, s.to]);
+    expect(involvedIds).not.toContain('b');
+  });
+
+  // Mutant killer : b < 0 ne doit pas inclure les membres à solde 0 comme débiteurs
+  // (tue le mutant b < 0 → b <= 0)
+  it('un membre à solde exactement 0 ne génère aucun paiement', () => {
+    const result = simplifyDebts({ a: 5, b: 0, c: -5 });
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual({ from: 'c', to: 'a', amount: 5 });
+  });
+
+  // Mutant killer : remaining <= 0 doit stopper quand remaining === 0
+  // (tue le mutant <= → <)
+  it('un débiteur qui rembourse exactement 2 créditeurs ne génère pas de settlement à 0', () => {
+    // c doit 30 : 20 à a et 10 à b
+    const result = simplifyDebts({ a: 20, b: 10, c: -30 });
+    expect(result).toHaveLength(2);
+    expect(result.every((s) => s.amount > 0)).toBe(true);
+    expect(result).toContainEqual({ from: 'c', to: 'a', amount: 20 });
+    expect(result).toContainEqual({ from: 'c', to: 'b', amount: 10 });
+  });
 });
